@@ -32,7 +32,7 @@ _G.DefaultSettings = false   -- If set to true then the ESP script would run wit
 _G.TeamCheck = true   -- If set to true then the script would create ESP only for the enemy team members.
 
 _G.ESPVisible = true   -- If set to true then the ESP will be visible and vice versa.
-_G.TextColor = Color3.fromRGB(255, 80, 10)   -- The color that the boxes would appear as.
+_G.TextColor = Color3.fromRGB(255,255,255)   -- The color that the boxes would appear as.
 _G.TextSize = 14   -- The size of the text.
 _G.Center = true   -- If set to true then the script would be located at the center of the label.
 _G.Outline = true   -- If set to true then the text would have an outline.
