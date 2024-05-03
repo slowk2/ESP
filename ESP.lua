@@ -12,7 +12,6 @@ local ESP = {
     AttachShift = 1,
     TeamMates = true,
     Players = true,
-    
     Objects = setmetatable({}, {__mode="kv"}),
     Overrides = {}
 }
@@ -265,7 +264,7 @@ function ESP:Add(obj, options)
     local box = setmetatable({
         Name = options.Name or obj.Name,
         Type = "Box",
-        Color = options.Color --[[or self:GetColor(obj)]],
+        Color = options.Color, --[[or self:GetColor(obj)]],
         Size = options.Size or self.BoxSize,
         Object = obj,
         Player = options.Player or plrs:GetPlayerFromCharacter(obj),
@@ -335,6 +334,101 @@ function ESP:Add(obj, options)
     return box
 end
 
+-- 2D Dynamic Box ESP Function
+function ESP:Add2DDynamicBox(player)
+    local box = Drawing.new("Quad")
+    box.Visible = false
+    box.PointA = Vector2.new(0, 0)
+    box.PointB = Vector2.new(0, 0)
+    box.PointC = Vector2.new(0, 0)
+    box.PointD = Vector2.new(0, 0)
+    box.Color = Color3.fromRGB(255, 255, 255)
+    box.Thickness = 1
+    box.Transparency = 1
+
+    local function Update()
+        local c
+        c = game:GetService("RunService").RenderStepped:Connect(function()
+            if player.Character ~= nil and player.Character:FindFirstChildOfClass("Humanoid") ~= nil and player.Character.PrimaryPart ~= nil and player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                local pos, vis = cam:WorldToViewportPoint(player.Character.PrimaryPart.Position)
+                if vis then 
+                    local points = {}
+                    local c = 0
+                    for _,v in pairs(player.Character:GetChildren()) do
+                        if v:IsA("BasePart") then
+                            c = c + 1
+                            local p, vis = cam:WorldToViewportPoint(v.Position)
+                            if v == player.Character.PrimaryPart then
+                                p, vis = cam:WorldToViewportPoint((v.CFrame * CFrame.new(0, 0, -v.Size.Z)).p)
+                            elseif v.Name == "Head" then
+                                p, vis = cam:WorldToViewportPoint((v.CFrame * CFrame.new(0, v.Size.Y/2, v.Size.Z/1.25)).p)
+                            elseif string.match(v.Name, "Left") then
+                                p, vis = cam:WorldToViewportPoint((v.CFrame * CFrame.new(-v.Size.X/2, 0, 0)).p)
+                            elseif string.match(v.Name, "Right") then
+                                p, vis = cam:WorldToViewportPoint((v.CFrame * CFrame.new(v.Size.X/2, 0, 0)).p)
+                            end
+                            points[c] = {p, vis}
+                        end
+                    end
+
+                    local TopY = math.huge
+                    local DownY = -math.huge
+                    local LeftX = math.huge
+                    local RightX = -math.huge
+
+                    local Left
+                    local Right
+                    local Top
+                    local Bottom
+
+                    local closest = nil
+                    for _,v in pairs(points) do
+                        if v[2] == true then
+                            local p = v[1]
+                            if p.Y < TopY then
+                                Top = p
+                                TopY = p.Y
+                            end
+                            if p.Y > DownY then
+                                Bottom = p
+                                DownY = p.Y
+                            end
+                            if p.X > RightX then
+                                Right = p
+                                RightX = p.X
+                            end
+                            if p.X < LeftX then
+                                Left = p
+                                LeftX = p.X
+                            end
+                        end
+                    end
+
+                    if Left ~= nil and Right ~= nil and Top ~= nil and Bottom ~= nil then
+                        box.PointA = Vector2.new(Right.X, Top.Y)
+                        box.PointB = Vector2.new(Left.X, Top.Y)
+                        box.PointC = Vector2.new(Left.X, Bottom.Y)
+                        box.PointD = Vector2.new(Right.X, Bottom.Y)
+
+                        box.Visible = true
+                    else 
+                        box.Visible = false
+                    end
+                else 
+                    box.Visible = false
+                end
+            else
+                box.Visible = false
+                if plrs:FindFirstChild(player.Name) == nil then
+                    c:Disconnect()
+                end
+            end
+        end)
+    end
+    coroutine.wrap(Update)()
+end
+
+-- Player added event
 local function CharAdded(char)
     local p = plrs:GetPlayerFromCharacter(char)
     if not char:FindFirstChild("HumanoidRootPart") then
@@ -357,19 +451,26 @@ local function CharAdded(char)
         })
     end
 end
+
+-- Player added event handler
 local function PlayerAdded(p)
     p.CharacterAdded:Connect(CharAdded)
     if p.Character then
         coroutine.wrap(CharAdded)(p.Character)
     end
 end
+
+-- Connect player added event
 plrs.PlayerAdded:Connect(PlayerAdded)
+
+-- Loop through existing players
 for i,v in pairs(plrs:GetPlayers()) do
     if v ~= plr then
         PlayerAdded(v)
     end
 end
 
+-- Run service event for updating ESP
 game:GetService("RunService").RenderStepped:Connect(function()
     cam = workspace.CurrentCamera
     for i,v in (ESP.Enabled and pairs or ipairs)(ESP.Objects) do
@@ -380,8 +481,5 @@ game:GetService("RunService").RenderStepped:Connect(function()
     end
 end)
 
+-- Return ESP
 return ESP
-    TestService:Message("The ESP script has errored, please notify Exunys with the following information :")
-    warn(Errored)
-    print("!! IF THE ERROR IS A FALSE POSITIVE (says that a player cannot be found) THEN DO NOT BOTHER !!")
-end
